@@ -2,15 +2,12 @@ program main
   implicit none
 
   integer, parameter :: nr = 1000, np = 50           ! radial resolution
-  real*8, dimension(nr) :: temp                      ! Temperature profile
   real*8, parameter :: plogmin = 5., plogmax = 10.    ! Min and Max log(P[bar]) to be explored
   real*8 :: pc                                       ! Pressure in the center in bar
-  character, dimension(3), parameter :: comp = ["f","r","w"]
+  character, dimension(4), parameter :: comp = ["f","r","w","g"]
   integer :: i, c
 
-  temp(:) = 0
-
-  do c = 1, 3
+  do c = 4, 4
 
     open(unit = 14, file = comp(c) // '_mass-radius.d', status='replace')
     write(14, *) "Pc [Mbar], R [10^7 m], Mearth: "
@@ -18,7 +15,7 @@ program main
   
     do i = 0, np
       pc = 10.**(plogmin + i*(plogmax - plogmin)/np)
-      call structure(pc, comp(c), temp, nr)
+      call structure(pc, comp(c), nr)
     end do
 
   end do
@@ -30,12 +27,11 @@ end program
 
 
 
-subroutine structure(pc, comp, temp, nr)
+subroutine structure(pc, comp, nr)
   implicit none
   integer, intent(in) :: nr           ! radial resolution
   real*8, intent(in) :: pc            ! Pressure in the center in bar
   character, intent(in) :: comp
-  real*8, intent(in), dimension(nr) :: temp 
   real*8, parameter :: pi = acos(-1d0)
   real*8, parameter :: UNIT_R = 1d7        ! in m
   real*8, parameter :: UNIT_RHO = 1d3      ! Density g/cm^3 in terms of kg/m^3
@@ -45,7 +41,9 @@ subroutine structure(pc, comp, temp, nr)
   real*8, parameter :: G = 6.673d-11/(UNIT_P*UNIT_R/(UNIT_M*UNIT_RHO))    ! gravitational constant in terms of the other quantities
   real*8, parameter :: ps = 1d0            ! Pressure at the surface in bar
   real*8, parameter :: eps = 1.0         ! First point: dr(1->2)/r(1) it has to be of order 1
-  real*8, dimension(nr) :: r, rho, p, mass    ! s is the specific entrop in kb units                          ! P is in Mbar
+  real*8, parameter :: gamma = 2.5         ! Adiabatic index in P(T)
+  real*8, parameter :: logk_ad = 8       ! Constant of P = k_ad T^gamma
+  real*8, dimension(nr) :: r, rho, p, temp, mass       ! P is in Mbar
   real*8 :: dlnp, mdm, rho_eos
   real*8 :: pint, rhoint, rint, mint
   real*8 :: dm_1, dm_2, dm_3, dm_4, dr_1, dr_2, dr_3, dr_4
@@ -54,6 +52,7 @@ subroutine structure(pc, comp, temp, nr)
   dlnp = dlog(ps/pc)/(nr-1.)
   do i = 1, nr
    p(i) = pc*dexp((i-1)*dlnp)
+   temp(i) = (p(i)/10**logk_ad)**(1/gamma)
    rho(i) = rho_eos(p(i),temp(i),comp)
   enddo
    ! dr(1->2) = -dlnp p(1) r(1)**2 / (m(1) G rho(1)) = -dlnp p(1) 3/(4pi rho(1)^2 G r(1))
@@ -166,12 +165,11 @@ end subroutine structure
 
 
 
-! p[Mbar] = A*rho**2 + 3.59d-5*rho*temp          ! eq. (2) Fortney et al. 2007 & Fig. 1 H20 very rough
+! p[Mbar] = 3.59d-5*rho*temp          ! eq. (2) Fortney et al. 2007 & Fig. 1 H20 very rough
 real*8 function rho_eos(pres_bar, temperature, comp)
   implicit None
   real*8, intent(in) :: pres_bar, temperature
   character, intent(in) :: comp
-  real*8, parameter :: A = 4 ! Term proportional to rho**2 in P0, Fortney very rough =4 for rocks
   real*8, parameter :: B = 3.59e-5 ! Term hot ideal EoS, eq. (2) Fortney
 
   select case(comp)
@@ -182,8 +180,8 @@ real*8 function rho_eos(pres_bar, temperature, comp)
       rho_eos = 5d0*(pres_bar*1e-6)**0.32      ! Rock EoS from Fortney, manual fit
     case("w")
       rho_eos = 2.45d0*(pres_bar*1e-6)**0.38    ! H20 EoS from Fortney, manual fit
-    case("h")
-      rho_eos = 0.5d0*( - B*temperature + sqrt((B*temperature)**2 + 4d0*A*pres_bar*1e-6) )
+    case("g")
+      rho_eos = pres_bar*1e-6/(B*temperature)
   end select
 
 end function rho_eos
