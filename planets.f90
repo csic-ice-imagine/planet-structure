@@ -1,8 +1,8 @@
 program main
   implicit none
 
-  integer, parameter :: nr = 1000, np = 50           ! radial resolution
-  real*8, parameter :: plogmin = 5., plogmax = 10.    ! Min and Max log(P[bar]) to be explored
+  integer, parameter :: nr = 1000, np = 1           ! radial resolution
+  real*8, parameter :: plogmin = 8., plogmax = 10.    ! Min and Max log(P[bar]) to be explored
   real*8 :: pc                                       ! Pressure in the center in bar
   character, dimension(4), parameter :: comp = ["f","r","w","g"]
   integer :: i, c
@@ -13,8 +13,9 @@ program main
     write(14, *) "Pc [Mbar], R [10^7 m], Mearth: "
     close(14)
   
-    do i = 0, np
-      pc = 10.**(plogmin + i*(plogmax - plogmin)/np)
+    do i = 1, np
+      pc = 10.**(plogmin + (i-1)*(plogmax - plogmin)/np)
+      print*,pc
       call structure(pc, comp(c), nr)
     end do
 
@@ -42,7 +43,7 @@ subroutine structure(pc, comp, nr)
   real*8, parameter :: ps = 1d0            ! Pressure at the surface in bar
   real*8, parameter :: eps = 1.0         ! First point: dr(1->2)/r(1) it has to be of order 1
   real*8, parameter :: gamma = 2.5         ! Adiabatic index in P(T)
-  real*8, parameter :: logk_ad = 8       ! Constant of P = k_ad T^gamma
+  real*8, parameter :: logk_ad = -6       ! Constant of P = k_ad T^gamma
   real*8, dimension(nr) :: r, rho, p, temp, mass       ! P is in Mbar
   real*8 :: dlnp, mdm, rho_eos
   real*8 :: pint, rhoint, rint, mint
@@ -153,7 +154,7 @@ subroutine structure(pc, comp, nr)
  enddo
 
  open(unit = 12, file = 'rk4.d', status='replace')
- write(12, *) "r, rho, p, mass"
+ write(12, *) "r (1e7 m), rho, p, Earth mass"
  do i = 1, nr
    write(12, '(1pe11.3,1pe11.3,1pe11.3,1pe11.3)') r(i)*UNIT_R, rho(i), p(i), mass(i)*UNIT_M/EARTH_M
  end do    
