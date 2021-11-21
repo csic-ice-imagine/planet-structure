@@ -39,6 +39,7 @@ subroutine structure(pc, comp, nr)
   real*8, parameter :: UNIT_M = UNIT_RHO*UNIT_R**3   ! Unit mass in kg
   real*8, parameter :: EARTH_M = 5.97e24   ! in kg
   real*8, parameter :: UNIT_P = 1d5        ! Pressure bar in terms of Pascal
+  real*8, parameter :: P_REF = 1d0/UNIT_P, T_REF = 273.15 ! Ref. pressure and temperature for the calculation of Entropy
   real*8, parameter :: G = 6.673d-11/(UNIT_P*UNIT_R/(UNIT_M*UNIT_RHO))    ! gravitational constant in terms of the other quantities
   real*8, parameter :: ps = 1d0            ! Pressure at the surface in bar
   real*8, parameter :: eps = 1.0         ! First point: dr(1->2)/r(1) it has to be of order 1
@@ -53,7 +54,7 @@ subroutine structure(pc, comp, nr)
   dlnp = dlog(ps/pc)/(nr-1.)
   do i = 1, nr
    p(i) = pc*dexp((i-1)*dlnp)
-   temp(i) = (p(i)/10**logk_ad)**(1/gamma)
+   temp(i) = T_REF*((p(i)/P_REF)/10**logk_ad)**(1/gamma)
    rho(i) = rho_eos(p(i),temp(i),comp)
   enddo
    ! dr(1->2) = -dlnp p(1) r(1)**2 / (m(1) G rho(1)) = -dlnp p(1) 3/(4pi rho(1)^2 G r(1))
